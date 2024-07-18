@@ -5,11 +5,35 @@
   <style>
   body{
     background-color: black;
-    color:cyan;
     text-align:center;
+    animation: bganim 39s infinite alternate;
   }
+
+  @keyframes bganim {
+    0% {
+        background-color: black; /* Red */
+        color:white;
+    }
+    25% {
+        background-color:  purple; /* Blue */
+        color: yellow;
+    }
+    50%{
+      background-color: brown;
+      color:cyan;
+    }
+    75%{
+      background-color: chartreuse;
+      color:violet
+    }
+    100%{
+      background-color: white;
+      color:black;
+    }
+  }
+
   .btn{
-    border: 1px solid cyan;
+    border: 5px solid cyan;
     border-radius: 10px;
     background-color: cyan;
     color: black;
@@ -19,11 +43,15 @@
   </style>
   <meta http-equiv="CONTENT-TYPE" content="text/html; charset=UTF-8">
   <link rel="stylesheet" href="styles/style.css"/>
-  <title>Hello, World!</title>
+  <title>Main page</title>
 </head>
 <body>
   <h1>welcome to the project bgs web page</h1>
-  <p>this is a page with info,invites,tutorials etc.</p>
+  <p>we are trying to become the biggest vr community. More info below</p>
   <a class="btn" href="https://discord.com/invite/pgdwcM8Mnf">discord invite</a>
+  <br>
+  <p>INFORMATIVE</p>
+  <p><a class="btn" href="info.html">information</a> <a class="btn"href="goals.html">our goals</a></p>
+  <br>
 </body>
 </html>
