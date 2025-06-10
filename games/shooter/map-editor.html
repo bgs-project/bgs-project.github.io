@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Map Editor - 2D Shooter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: #222;
+            color: white;
+            overflow: hidden;
+        }
+        
+        .editor-container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        .toolbar {
+            width: 250px;
+            background: #333;
+            border-right: 2px solid #555;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .editor-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .editor-header {
+            background: #444;
+            padding: 10px 20px;
+            border-bottom: 2px solid #555;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            background: #111;
+        }
+        
+        #mapCanvas {
+            cursor: crosshair;
+            border: 1px solid #555;
+        }
+        
+        .toolbar h2 {
+            color: #4CAF50;
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+        
+        .tool-section {
+            margin-bottom: 25px;
+        }
+        
+        .tool-section h3 {
+            color: #4CAF50;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        .tool-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        
+        .tool-item {
+            width: 100%;
+            height: 50px;
+            background: #555;
+            border: 2px solid #666;
+            border-radius: 5px;
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        .tool-item:hover {
+            background: #666;
+            border-color: #4CAF50;
+            transform: scale(1.05);
+        }
+        
+        .tool-item.selected {
+            border-color: #4CAF50;
+            background: #4CAF50;
+            color: #000;
+        }
+        
+        .tool-item.wall {
+            background: #8B4513;
+            color: white;
+        }
+        
+        .tool-item.spawn {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .tool-item.cover {
+            background: #666;
+            color: white;
+        }
+        
+        .tool-item.powerup {
+            background: #FFD700;
+            color: black;
+        }
+        
+        .tool-item.hazard {
+            background: #FF4444;
+            color: white;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: #ccc;
+        }
+        
+        .control-group input, .control-group select {
+            width: 100%;
+            padding: 8px;
+            background: #555;
+            border: 1px solid #666;
+            border-radius: 3px;
+            color: white;
+            font-size: 12px;
+        }
+        
+        .btn {
+            padding: 10px 15px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            transition: background 0.3s;
+            margin: 5px 0;
+            width: 100%;
+        }
+        
+        .btn:hover {
+            background: #45a049;
+        }
+        
+        .btn.secondary {
+            background: #666;
+        }
+        
+        .btn.secondary:hover {
+            background: #777;
+        }
+        
+        .btn.danger {
+            background: #f44336;
+        }
+        
+        .btn.danger:hover {
+            background: #da190b;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .grid-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            opacity: 0.3;
+        }
+        
+        .coordinates {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+            color: #ccc;
+        }
+        
+        .layer-controls {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        
+        .layer-btn {
+            padding: 5px 10px;
+            background: #555;
+            border: 1px solid #666;
+            color: white;
+            font-size: 11px;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        
+        .layer-btn.active {
+            background: #4CAF50;
+            border-color: #4CAF50;
+        }
+        
+        .properties-panel {
+            background: #2a2a2a;
+            padding: 15px;
+            border-top: 2px solid #555;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .object-list {
+            max-height: 150px;
+            overflow-y: auto;
+            background: #2a2a2a;
+            border: 1px solid #555;
+            border-radius: 3px;
+            padding: 5px;
+        }
+        
+        .object-item {
+            padding: 5px;
+            margin: 2px 0;
+            background: #444;
+            border-radius: 3px;
+            font-size: 11px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .object-item:hover {
+            background: #555;
+        }
+        
+        .object-item.selected {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .delete-btn {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 2px 6px;
+            border-radius: 2px;
+            font-size: 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="editor-container">
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <h2>🛠️ Map Editor</h2>
+            
+            <!-- Map Controls -->
+            <div class="tool-section">
+                <h3>Map Controls</h3>
+                <div class="control-group">
+                    <label>Map Name:</label>
+                    <input type="text" id="mapName" value="new_map" placeholder="Enter map name">
+                </div>
+                <div class="control-group">
+                    <label>Map Size:</label>
+                    <select id="mapSize">
+                        <option value="800x600">800x600 (Default)</option>
+                        <option value="1000x800">1000x800 (Large)</option>
+                        <option value="1200x900">1200x900 (Extra Large)</option>
+                        <option value="600x400">600x400 (Small)</option>
+                    </select>
+                </div>
+                <button class="btn" onclick="newMap()">New Map</button>
+                <button class="btn secondary" onclick="document.getElementById('loadFile').click()">Load Map</button>
+                <input type="file" id="loadFile" class="file-input" accept=".json" onchange="loadMap(event)">
+                <button class="btn" onclick="saveMap()">Save Map</button>
+                <button class="btn" onclick="exportMap()">Export Map</button>
+            </div>
+            
+            <!-- Tools -->
+            <div class="tool-section">
+                <h3>Tools</h3>
+                <div class="tool-grid">
+                    <div class="tool-item" data-tool="select" onclick="selectTool('select')" title="Select Tool">
+                        📍 Select
+                    </div>
+                    <div class="tool-item" data-tool="erase" onclick="selectTool('erase')" title="Erase Tool">
+                        🗑️ Erase
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Map Objects -->
+            <div class="tool-section">
+                <h3>Walls & Obstacles</h3>
+                <div class="tool-grid">
+                    <div class="tool-item wall" data-type="wall" draggable="true" title="Wall Block">
+                        🧱 Wall
+                    </div>
+                    <div class="tool-item cover" data-type="cover" draggable="true" title="Cover (Half Wall)">
+                        📦 Cover
+                    </div>
+                    <div class="tool-item" data-type="barrier" draggable="true" title="Barrier" style="background: #555;">
+                        🚧 Barrier
+                    </div>
+                    <div class="tool-item" data-type="pillar" draggable="true" title="Pillar" style="background: #777;">
+                        🏛️ Pillar
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tool-section">
+                <h3>Spawn Points</h3>
+                <div class="tool-grid">
+                    <div class="tool-item spawn" data-type="spawn" draggable="true" title="Player Spawn">
+                        🎯 Spawn
+                    </div>
+                    <div class="tool-item" data-type="team_spawn_a" draggable="true" title="Team A Spawn" style="background: #2196F3;">
+                        🔵 Team A
+                    </div>
+                    <div class="tool-item" data-type="team_spawn_b" draggable="true" title="Team B Spawn" style="background: #f44336;">
+                        🔴 Team B
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tool-section">
+                <h3>Power-ups & Items</h3>
+                <div class="tool-grid">
+                    <div class="tool-item powerup" data-type="health" draggable="true" title="Health Pack">
+                        ❤️ Health
+                    </div>
+                    <div class="tool-item" data-type="ammo" draggable="true" title="Ammo Pack" style="background: #FF9800;">
+                        💥 Ammo
+                    </div>
+                    <div class="tool-item" data-type="shield" draggable="true" title="Shield" style="background: #00BCD4;">
+                        🛡️ Shield
+                    </div>
+                    <div class="tool-item" data-type="speed" draggable="true" title="Speed Boost" style="background: #9C27B0;">
+                        ⚡ Speed
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tool-section">
+                <h3>Hazards</h3>
+                <div class="tool-grid">
+                    <div class="tool-item hazard" data-type="spikes" draggable="true" title="Spikes">
+                        🔺 Spikes
+                    </div>
+                    <div class="tool-item" data-type="lava" draggable="true" title="Lava" style="background: #FF5722;">
+                        🔥 Lava
+                    </div>
+                    <div class="tool-item" data-type="water" draggable="true" title="Water" style="background: #03A9F4;">
+                        🌊 Water
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Object Properties -->
+            <div class="tool-section">
+                <h3>Selected Object</h3>
+                <div id="objectProperties">
+                    <p style="color: #888; font-size: 12px;">No object selected</p>
+                </div>
+            </div>
+            
+            <!-- Object List -->
+            <div class="tool-section">
+                <h3>Objects on Map</h3>
+                <div class="object-list" id="objectList">
+                    <p style="color: #888; font-size: 12px;">No objects placed</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Editor -->
+        <div class="editor-main">
+            <!-- Header -->
+            <div class="editor-header">
+                <div>
+                    <span>Map Editor</span>
+                    <span id="mapStatus" style="margin-left: 20px; color: #888;">Ready</span>
+                </div>
+                <div class="layer-controls">
+                    <div class="layer-btn active" onclick="toggleLayer('grid')">Grid</div>
+                    <div class="layer-btn active" onclick="toggleLayer('objects')">Objects</div>
+                    <div class="layer-btn active" onclick="toggleLayer('spawns')">Spawns</div>
+                </div>
+            </div>
+            
+            <!-- Canvas Area -->
+            <div class="canvas-container">
+                <canvas id="mapCanvas" width="800" height="600"></canvas>
+                <canvas id="gridCanvas" class="grid-overlay" width="800" height="600"></canvas>
+                <div class="coordinates" id="coordinates">0, 0</div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="map-editor.js"></script>
+</body>
+</html>
+

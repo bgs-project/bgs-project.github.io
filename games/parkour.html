@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2D Platformer Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(to bottom, #87CEEB, #98FB98);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+        
+        #gameContainer {
+            position: relative;
+            background: #333;
+            border: 3px solid #222;
+            border-radius: 10px;
+        }
+        
+        #gameCanvas {
+            background: linear-gradient(to bottom, #87CEEB, #90EE90);
+            display: block;
+            border-radius: 7px;
+        }
+        
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-size: 18px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+        
+        #instructions {
+            position: absolute;
+            bottom: -40px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        #secret {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: #FFD700;
+            font-size: 14px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        #secret.active {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        <div id="ui">
+            <div>Score: <span id="score">0</span></div>
+            <div>Lives: <span id="lives">3</span></div>
+            <div>Ammo: <span id="ammo">50</span></div>
+        </div>
+        <div id="secret">AIR JUMP ACTIVATED!</div>
+        <div id="instructions">
+            Use ARROW KEYS or WASD to move and jump • X to shoot • G to toggle invincibility • Collect coins and ammo • Kill enemies • Reach the flag at the top!
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Game state
+        let gameState = {
+            score: 0,
+            lives: 3,
+            gameOver: false,
+            levelComplete: false,
+            airJumpEnabled: false,
+            ammo: 50,
+            invincible: false
+        };
+        
+        // Konami Code tracking
+        const konamiCode = ['arrowup', 'arrowup', 'arrowdown', 'arrowdown', 'arrowleft', 'arrowright', 'arrowleft', 'arrowright', 'b', 'a'];
+        let konamiProgress = [];
+        let konamiTimeout = null;
+        
+        // Camera
+        const camera = {
+            y: 0,
+            targetY: 0,
+            smoothing: 0.1
+        };
+        
+        // Player object
+        const player = {
+            x: 50,
+            y: 450,
+            width: 30,
+            height: 30,
+            velocityX: 0,
+            velocityY: 0,
+            speed: 3,
+            jumpPower: 12,
+            onGround: false,
+            onMovingPlatform: null,
+            color: '#FF6B6B',
+            airJumps: 0,
+            maxAirJumps: 5000,
+            facingRight: true
+        };
+        
+        // Bullets array
+        const bullets = [];
+        
+        // Bullet object constructor
+        function createBullet(x, y, direction) {
+            return {
+                x: x,
+                y: y,
+                width: 8,
+                height: 3,
+                speed: 8,
+                direction: direction, // 1 for right, -1 for left
+                active: true
+            };
+        }
+        
+        // Platforms - extending upward for vertical gameplay
+        const platforms = [
+            // Starting area
+            { x: 0, y: 550, width: 200, height: 50, color: '#8B4513' },
+            { x: 250, y: 550, width: 150, height: 50, color: '#8B4513' },
+            { x: 450, y: 550, width: 200, height: 50, color: '#8B4513' },
+            { x: 700, y: 550, width: 100, height: 50, color: '#8B4513' },
+            
+            // Lower section
+            { x: 150, y: 450, width: 100, height: 20, color: '#A0522D' },
+            { x: 300, y: 380, width: 100, height: 20, color: '#A0522D' },
+            { x: 500, y: 320, width: 120, height: 20, color: '#A0522D' },
+            { x: 650, y: 250, width: 100, height: 20, color: '#A0522D' },
+            { x: 400, y: 180, width: 100, height: 20, color: '#A0522D' },
+            { x: 200, y: 120, width: 150, height: 20, color: '#A0522D' },
+            
+            // Middle section
+            { x: 50, y: 50, width: 100, height: 20, color: '#A0522D' },
+            { x: 300, y: 20, width: 120, height: 20, color: '#A0522D' },
+            { x: 500, y: -50, width: 100, height: 20, color: '#A0522D' },
+            { x: 250, y: -200, width: 100, height: 20, color: '#A0522D' },
+            { x: 450, y: -150, width: 150, height: 20, color: '#A0522D' },
+            
+            // Upper section
+            { x: 100, y: -250, width: 120, height: 20, color: '#A0522D' },
+            { x: 350, y: -320, width: 100, height: 20, color: '#A0522D' },
+            { x: 550, y: -380, width: 120, height: 20, color: '#A0522D' },
+            { x: 200, y: -450, width: 100, height: 20, color: '#A0522D' },
+            { x: 400, y: -520, width: 200, height: 20, color: '#A0522D' }
+        ];
+        
+        // Moving platforms
+        const movingPlatforms = [
+            { x: 100, y: 300, width: 80, height: 15, color: '#CD853F', 
+              startX: 100, endX: 200, speed: 0.8, direction: 1, lastX: 100 },
+            { x: 550, y: 400, width: 80, height: 15, color: '#CD853F', 
+              startX: 500, endX: 600, speed: 1, direction: 1, lastX: 550 },
+            { x: 150, y: -80, width: 80, height: 15, color: '#CD853F', 
+              startX: 150, endX: 300, speed: 0.6, direction: 1, lastX: 150 },
+            { x: 480, y: -280, width: 80, height: 15, color: '#CD853F', 
+              startX: 450, endX: 550, speed: 0.9, direction: 1, lastX: 480 }
+        ];
+        
+        // Coins - distributed throughout the vertical level
+        const coins = [
+            { x: 175, y: 420, size: 12, collected: false },
+            { x: 325, y: 350, size: 12, collected: false },
+            { x: 540, y: 290, size: 12, collected: false },
+            { x: 675, y: 220, size: 12, collected: false },
+            { x: 425, y: 150, size: 12, collected: false },
+            { x: 275, y: 90, size: 12, collected: false },
+            { x: 125, y: 20, size: 12, collected: false },
+            { x: 575, y: -60, size: 12, collected: false },
+            { x: 275, y: -90, size: 12, collected: false },
+            { x: 500, y: -160, size: 12, collected: false },
+            { x: 150, y: -220, size: 12, collected: false },
+            { x: 375, y: -290, size: 12, collected: false },
+            { x: 580, y: -350, size: 12, collected: false },
+            { x: 225, y: -420, size: 12, collected: false },
+            { x: 500, y: -490, size: 12, collected: false }
+        ];
+        
+        // Enemies - spread throughout the level
+        const enemies = [
+            { x: 280, y: 520, width: 25, height: 25, startX: 250, endX: 380, 
+              speed: 0.5, direction: 1, color: '#DC143C', health: 10, maxHealth: 10 },
+            { x: 480, y: 520, width: 25, height: 25, startX: 450, endX: 620, 
+              speed: 0.7, direction: 1, color: '#DC143C', health: 10, maxHealth: 10 },
+            { x: 320, y: 350, width: 20, height: 20, startX: 300, endX: 400, 
+              speed: 0.6, direction: 1, color: '#B22222', health: 10, maxHealth: 10 },
+            { x: 120, y: 20, width: 20, height: 20, startX: 50, endX: 150, 
+              speed: 0.4, direction: 1, color: '#B22222', health: 10, maxHealth: 10 },
+            { x: 450, y: -175, width: 25, height: 25, startX: 350, endX: 470, 
+              speed: 0.5, direction: 1, color: '#DC143C', health: 10, maxHealth: 10 },
+            { x: 480, y: -350, width: 20, height: 20, startX: 450, endX: 570, 
+              speed: 0.6, direction: 1, color: '#B22222', health: 10, maxHealth: 10 }
+        ];
+        
+        // Ammo pickups
+        const ammoPickups = [
+            { x: 300, y: 520, size: 15, collected: false },
+            { x: 450, y: 290, size: 15, collected: false },
+            { x: 675, y: 190, size: 15, collected: false },
+            { x: 225, y: -50, size: 15, collected: false },
+            { x: 525, y: -320, size: 15, collected: false }
+        ];
+        
+        // Goal flag - at the top of the level
+        const goal = { x: 480, y: -570, width: 30, height: 50 };
+        
+        // Input handling
+        const keys = {};
+        
+        document.addEventListener('keydown', (e) => {
+            const key = e.key.toLowerCase();
+            keys[key] = true;
+            
+            // Shooting with X key (single shot)
+            if (key === 'x' && gameState.ammo > 0) {
+                shoot();
+            }
+            
+            // Check Konami code
+            checkKonamiCode(key);
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            keys[e.key.toLowerCase()] = false;
+        });
+        
+        // Konami code functions
+        function checkKonamiCode(key) {
+            // Clear timeout if exists
+            if (konamiTimeout) {
+                clearTimeout(konamiTimeout);
+            }
+            
+            // Check if the key matches the next expected key in sequence
+            if (key === konamiCode[konamiProgress.length]) {
+                konamiProgress.push(key);
+                
+                // Check if complete sequence is entered
+                if (konamiProgress.length === konamiCode.length) {
+                    activateAirJump();
+                    konamiProgress = [];
+                    return;
+                }
+                
+                // Set timeout to reset progress after 2 seconds of inactivity
+                konamiTimeout = setTimeout(() => {
+                    konamiProgress = [];
+                }, 2000);
+            } else {
+                // Wrong key, reset progress
+                konamiProgress = [];
+            }
+        }
+        
+        function activateAirJump() {
+            gameState.airJumpEnabled = true;
+            document.getElementById('secret').classList.add('active');
+            
+            // Hide the message after 3 seconds
+            setTimeout(() => {
+                document.getElementById('secret').classList.remove('active');
+            }, 3000);
+        }
+        
+        // Shooting function
+        function shoot() {
+            if (gameState.ammo > 0) {
+                gameState.ammo--;
+                
+                // Create bullet at player position
+                const bulletX = player.facingRight ? player.x + player.width : player.x;
+                const bulletY = player.y + player.height / 2;
+                const direction = player.facingRight ? 1 : -1;
+                
+                bullets.push(createBullet(bulletX, bulletY, direction));
+            }
+        }
+        
+        // Physics and collision detection
+        function checkCollision(rect1, rect2) {
+            return rect1.x < rect2.x + rect2.width &&
+                   rect1.x + rect1.width > rect2.x &&
+                   rect1.y < rect2.y + rect2.height &&
+                   rect1.y + rect1.height > rect2.y;
+        }
+        
+        function updateCamera() {
+            // Camera follows player with some offset
+            camera.targetY = player.y - canvas.height * 0.7;
+            camera.y += (camera.targetY - camera.y) * camera.smoothing;
+        }
+        
+        function updatePlayer() {
+            // Handle invincibility
+            gameState.invincible = keys['g'];
+            
+            // Handle input
+            if (keys['arrowleft'] || keys['a']) {
+                player.velocityX = -player.speed;
+                player.facingRight = false;
+            } else if (keys['arrowright'] || keys['d']) {
+                player.velocityX = player.speed;
+                player.facingRight = true;
+            } else {
+                player.velocityX *= 0.85; // Friction
+            }
+            
+            // Jumping logic
+            if (keys['arrowup'] || keys['w'] || keys[' ']) {
+                if (player.onGround) {
+                    // Normal ground jump
+                    player.velocityY = -player.jumpPower;
+                    player.onGround = false;
+                    player.onMovingPlatform = null;
+                    player.airJumps = 0; // Reset air jumps when jumping from ground
+                } else if (gameState.airJumpEnabled && player.airJumps < player.maxAirJumps) {
+                    // Air jump (only if Konami code activated)
+                    player.velocityY = -player.jumpPower * 0.8; // Slightly weaker air jumps
+                    player.airJumps++;
+                    
+                    // Visual effect for air jump
+                    player.color = '#FFD700'; // Gold color for air jump
+                    setTimeout(() => {
+                        player.color = '#FF6B6B'; // Reset to normal color
+                    }, 2000);
+                }
+            }
+            
+            // Apply gravity
+            player.velocityY += 0.6;
+            
+            // Apply moving platform velocity
+            if (player.onMovingPlatform && player.onGround) {
+                const platformDelta = player.onMovingPlatform.x - player.onMovingPlatform.lastX;
+                player.x += platformDelta;
+            }
+            
+            // Update position
+            player.x += player.velocityX;
+            player.y += player.velocityY;
+            
+            // Keep player in bounds
+            if (player.x < 0) player.x = 0;
+            if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+            
+            // Reset onGround and platform tracking
+            player.onGround = false;
+            player.onMovingPlatform = null;
+            
+            // Check platform collisions
+            [...platforms, ...movingPlatforms].forEach(platform => {
+                if (checkCollision(player, platform)) {
+                    // Landing on top
+                    if (player.velocityY > 0 && player.y < platform.y) {
+                        player.y = platform.y - player.height;
+                        player.velocityY = 0;
+                        player.onGround = true;
+                        player.airJumps = 0; // Reset air jumps when landing
+                        
+                        // Track if on moving platform
+                        if (movingPlatforms.includes(platform)) {
+                            player.onMovingPlatform = platform;
+                        }
+                    }
+                    // Hitting from below
+                    else if (player.velocityY < 0 && player.y > platform.y) {
+                        player.y = platform.y + platform.height;
+                        player.velocityY = 0;
+                    }
+                    // Hitting from sides
+                    else {
+                        if (player.velocityX > 0) {
+                            player.x = platform.x - player.width;
+                        } else {
+                            player.x = platform.x + platform.width;
+                        }
+                        player.velocityX = 0;
+                    }
+                }
+            });
+            
+            // Fall too far below start = lose life
+            if (player.y > 700 && !gameState.invincible) {
+                gameState.lives--;
+                resetPlayerPosition();
+            }
+        }
+        
+        function updateMovingPlatforms() {
+            movingPlatforms.forEach(platform => {
+                platform.lastX = platform.x;
+                platform.x += platform.speed * platform.direction;
+                
+                if (platform.x <= platform.startX || platform.x >= platform.endX) {
+                    platform.direction *= -1;
+                }
+            });
+        }
+        
+        function updateBullets() {
+            bullets.forEach((bullet, bulletIndex) => {
+                if (!bullet.active) return;
+                
+                // Move bullet
+                bullet.x += bullet.speed * bullet.direction;
+                
+                // Remove bullet if it goes off screen
+                if (bullet.x < -10 || bullet.x > canvas.width + 10) {
+                    bullet.active = false;
+                    return;
+                }
+                
+                // Check collision with platforms
+                [...platforms, ...movingPlatforms].forEach(platform => {
+                    if (checkCollision(bullet, platform)) {
+                        bullet.active = false;
+                    }
+                });
+                
+                // Check collision with enemies
+                enemies.forEach((enemy, enemyIndex) => {
+                    if (enemy.health > 0 && checkCollision(bullet, enemy)) {
+                        bullet.active = false;
+                        enemy.health--;
+                        
+                        // Enemy death
+                        if (enemy.health <= 0) {
+                            gameState.score += 500; // Bonus points for killing enemy
+                        }
+                    }
+                });
+            });
+            
+            // Remove inactive bullets
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                if (!bullets[i].active) {
+                    bullets.splice(i, 1);
+                }
+            }
+        }
+        
+        function updateEnemies() {
+            enemies.forEach(enemy => {
+                if (enemy.health <= 0) return; // Skip dead enemies
+                
+                enemy.x += enemy.speed * enemy.direction;
+                
+                if (enemy.x <= enemy.startX || enemy.x >= enemy.endX) {
+                    enemy.direction *= -1;
+                }
+                
+                // Check collision with player
+                if (checkCollision(player, enemy) && !gameState.invincible) {
+                    gameState.lives--;
+                    resetPlayerPosition();
+                }
+            });
+        }
+        
+        function updateCoins() {
+            coins.forEach(coin => {
+                if (!coin.collected && checkCollision(player, 
+                    {x: coin.x - coin.size, y: coin.y - coin.size, 
+                     width: coin.size * 2, height: coin.size * 2})) {
+                    coin.collected = true;
+                    gameState.score += 100;
+                }
+            });
+        }
+        
+        function updateAmmoPickups() {
+            ammoPickups.forEach(ammo => {
+                if (!ammo.collected && checkCollision(player, 
+                    {x: ammo.x - ammo.size, y: ammo.y - ammo.size, 
+                     width: ammo.size * 2, height: ammo.size * 2})) {
+                    ammo.collected = true;
+                    gameState.ammo += 20; // Give 20 ammo
+                    gameState.score += 50;
+                }
+            });
+        }
+        
+        function checkGoal() {
+            if (checkCollision(player, goal)) {
+                gameState.levelComplete = true;
+            }
+        }
+        
+        function resetPlayerPosition() {
+            player.x = 50;
+            player.y = 450;
+            player.velocityX = 0;
+            player.velocityY = 0;
+            player.onGround = false;
+            player.onMovingPlatform = null;
+            player.airJumps = 0;
+            player.color = '#FF6B6B';
+            player.facingRight = true;
+            
+            // Clear bullets when player dies
+            bullets.length = 0;
+            
+            // Reset camera to starting position
+            camera.y = 0;
+            camera.targetY = 0;
+            
+            if (gameState.lives <= 0) {
+                gameState.gameOver = true;
+            }
+        }
+        
+        function draw() {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Save context for camera transform
+            ctx.save();
+            ctx.translate(0, -camera.y);
+            
+            // Draw platforms
+            platforms.forEach((platform, index) => {
+                // Only draw if visible on screen
+                if (platform.y + platform.height > camera.y && platform.y < camera.y + canvas.height) {
+                    // Draw platform boundaries
+                    ctx.strokeStyle = 'rgba(139, 69, 19, 0.8)'; // Brown color for static platforms
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([2, 2]); // Small dashed line
+                    
+                    // Left boundary
+                    ctx.beginPath();
+                    ctx.moveTo(platform.x, platform.y - 8);
+                    ctx.lineTo(platform.x, platform.y + platform.height + 8);
+                    ctx.stroke();
+                    
+                    // Right boundary
+                    ctx.beginPath();
+                    ctx.moveTo(platform.x + platform.width, platform.y - 8);
+                    ctx.lineTo(platform.x + platform.width, platform.y + platform.height + 8);
+                    ctx.stroke();
+                    
+                    // Top line
+                    ctx.beginPath();
+                    ctx.moveTo(platform.x, platform.y - 8);
+                    ctx.lineTo(platform.x + platform.width, platform.y - 8);
+                    ctx.stroke();
+                    
+                    // Reset line style
+                    ctx.setLineDash([]);
+                    ctx.lineWidth = 1;
+                    
+                    // Draw the actual platform
+                    ctx.fillStyle = platform.color;
+                    ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+                    
+                    // Add some texture
+                    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                    ctx.fillRect(platform.x, platform.y, platform.width, 5);
+                    
+                    // Draw label
+                    ctx.fillStyle = 'white';
+                    ctx.font = '10px Arial';
+                    ctx.fillText(`platform[${index}]`, platform.x, platform.y - 5);
+                    
+                    // Draw boundary labels
+                    ctx.fillStyle = '#8B4513'; // Brown color
+                    ctx.font = '8px Arial';
+                    ctx.fillText(`start:${platform.x}`, platform.x - 10, platform.y - 18);
+                    ctx.fillText(`end:${platform.x + platform.width}`, platform.x + platform.width - 30, platform.y - 18);
+                }
+            });
+            
+            // Draw moving platforms
+            movingPlatforms.forEach((platform, index) => {
+                if (platform.y + platform.height > camera.y && platform.y < camera.y + canvas.height) {
+                    // Draw movement boundaries for platforms
+                    ctx.strokeStyle = 'rgba(0, 255, 255, 0.7)';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([3, 3]); // Dashed line
+                    
+                    // Left boundary (start position)
+                    ctx.beginPath();
+                    ctx.moveTo(platform.startX, platform.y - 15);
+                    ctx.lineTo(platform.startX, platform.y + platform.height + 15);
+                    ctx.stroke();
+                    
+                    // Right boundary (end position)
+                    ctx.beginPath();
+                    ctx.moveTo(platform.endX + platform.width, platform.y - 15);
+                    ctx.lineTo(platform.endX + platform.width, platform.y + platform.height + 15);
+                    ctx.stroke();
+                    
+                    // Top line connecting boundaries
+                    ctx.beginPath();
+                    ctx.moveTo(platform.startX, platform.y - 15);
+                    ctx.lineTo(platform.endX + platform.width, platform.y - 15);
+                    ctx.stroke();
+                    
+                    // Bottom line connecting boundaries  
+                    ctx.beginPath();
+                    ctx.moveTo(platform.startX, platform.y + platform.height + 15);
+                    ctx.lineTo(platform.endX + platform.width, platform.y + platform.height + 15);
+                    ctx.stroke();
+                    
+                    // Reset line style
+                    ctx.setLineDash([]);
+                    ctx.lineWidth = 1;
+                    
+                    // Draw movement zone background
+                    ctx.fillStyle = 'rgba(0, 255, 255, 0.1)';
+                    ctx.fillRect(platform.startX, platform.y - 10, platform.endX - platform.startX + platform.width, platform.height + 20);
+                    
+                    // Draw the actual platform
+                    ctx.fillStyle = platform.color;
+                    ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+                    
+                    // Add glow effect
+                    ctx.shadowColor = platform.color;
+                    ctx.shadowBlur = 10;
+                    ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+                    ctx.shadowBlur = 0;
+                    
+                    // Draw label
+                    ctx.fillStyle = 'white';
+                    ctx.font = '10px Arial';
+                    ctx.fillText(`movingPlatforms[${index}]`, platform.x, platform.y - 5);
+                    
+                    // Draw boundary labels
+                    ctx.fillStyle = 'cyan';
+                    ctx.font = '8px Arial';
+                    ctx.fillText(`start:${platform.startX}`, platform.startX - 15, platform.y - 25);
+                    ctx.fillText(`end:${platform.endX}`, platform.endX + platform.width + 5, platform.y - 25);
+                    ctx.fillText(`width:${platform.width}`, platform.x, platform.y + platform.height + 25);
+                }
+            });
+            
+            // Draw coins
+            coins.forEach((coin, index) => {
+                if (!coin.collected && coin.y > camera.y - 50 && coin.y < camera.y + canvas.height + 50) {
+                    ctx.fillStyle = '#FFD700';
+                    ctx.beginPath();
+                    ctx.arc(coin.x, coin.y, coin.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Inner shine
+                    ctx.fillStyle = '#FFFF00';
+                    ctx.beginPath();
+                    ctx.arc(coin.x - 3, coin.y - 3, coin.size * 0.4, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Draw label
+                    ctx.fillStyle = 'white';
+                    ctx.font = '10px Arial';
+                    ctx.fillText(`coins[${index}]`, coin.x - 15, coin.y - 20);
+                }
+            });
+            
+            // Draw enemies
+            enemies.forEach((enemy, index) => {
+                if (enemy.health > 0 && enemy.y > camera.y - 50 && enemy.y < camera.y + canvas.height + 50) {
+                    // Draw movement boundaries
+                    ctx.strokeStyle = 'rgba(255, 0, 0, 0.6)';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([5, 5]); // Dashed line
+                    
+                    // Left boundary
+                    ctx.beginPath();
+                    ctx.moveTo(enemy.startX, enemy.y - 10);
+                    ctx.lineTo(enemy.startX, enemy.y + enemy.height + 10);
+                    ctx.stroke();
+                    
+                    // Right boundary
+                    ctx.beginPath();
+                    ctx.moveTo(enemy.endX + enemy.width, enemy.y - 10);
+                    ctx.lineTo(enemy.endX + enemy.width, enemy.y + enemy.height + 10);
+                    ctx.stroke();
+                    
+                    // Top line connecting boundaries
+                    ctx.beginPath();
+                    ctx.moveTo(enemy.startX, enemy.y - 10);
+                    ctx.lineTo(enemy.endX + enemy.width, enemy.y - 10);
+                    ctx.stroke();
+                    
+                    // Reset line style
+                    ctx.setLineDash([]);
+                    ctx.lineWidth = 1;
+                    
+                    // Draw movement zone background
+                    ctx.fillStyle = 'rgba(255, 0, 0, 0.1)';
+                    ctx.fillRect(enemy.startX, enemy.y - 5, enemy.endX - enemy.startX + enemy.width, enemy.height + 10);
+                    
+                    // Damage effect - make enemy flash red when damaged
+                    const damageRatio = enemy.health / enemy.maxHealth;
+                    ctx.fillStyle = damageRatio < 0.5 ? '#FF4444' : enemy.color;
+                    ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+                    
+                    // Add eyes
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(enemy.x + 5, enemy.y + 5, 4, 4);
+                    ctx.fillRect(enemy.x + enemy.width - 9, enemy.y + 5, 4, 4);
+                    
+                    ctx.fillStyle = 'black';
+                    ctx.fillRect(enemy.x + 6, enemy.y + 6, 2, 2);
+                    ctx.fillRect(enemy.x + enemy.width - 8, enemy.y + 6, 2, 2);
+                    
+                    // Health bar
+                    if (enemy.health < enemy.maxHealth) {
+                        const barWidth = enemy.width;
+                        const barHeight = 4;
+                        
+                        // Background
+                        ctx.fillStyle = 'red';
+                        ctx.fillRect(enemy.x, enemy.y - 8, barWidth, barHeight);
+                        
+                        // Health
+                        ctx.fillStyle = 'green';
+                        ctx.fillRect(enemy.x, enemy.y - 8, (barWidth * enemy.health) / enemy.maxHealth, barHeight);
+                    }
+                    
+                    // Draw label
+                    ctx.fillStyle = 'white';
+                    ctx.font = '10px Arial';
+                    ctx.fillText(`enemies[${index}]`, enemy.x, enemy.y - 15);
+                    
+                    // Draw boundary labels
+                    ctx.fillStyle = 'red';
+                    ctx.font = '8px Arial';
+                    ctx.fillText(`start:${enemy.startX}`, enemy.startX - 10, enemy.y - 25);
+                    ctx.fillText(`end:${enemy.endX}`, enemy.endX + 10, enemy.y - 25);
+                }
+            });
+            
+            // Draw ammo pickups
+            ammoPickups.forEach((ammo, index) => {
+                if (!ammo.collected && ammo.y > camera.y - 50 && ammo.y < camera.y + canvas.height + 50) {
+                    // Ammo box
+                    ctx.fillStyle = '#8B4513';
+                    ctx.fillRect(ammo.x - ammo.size, ammo.y - ammo.size, ammo.size * 2, ammo.size * 2);
+                    
+                    // Ammo symbol
+                    ctx.fillStyle = '#FFD700';
+                    ctx.font = '12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('A', ammo.x, ammo.y + 4);
+                    ctx.textAlign = 'left';
+                    
+                    // Draw label
+                    ctx.fillStyle = 'white';
+                    ctx.font = '10px Arial';
+                    ctx.fillText(`ammoPickups[${index}]`, ammo.x - 20, ammo.y - 25);
+                }
+            });
+            
+            // Draw bullets
+            bullets.forEach((bullet, index) => {
+                if (bullet.active && bullet.y > camera.y - 50 && bullet.y < camera.y + canvas.height + 50) {
+                    ctx.fillStyle = '#FFFF00';
+                    ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+                    
+                    // Bullet trail effect
+                    ctx.fillStyle = 'rgba(255, 255, 0, 0.5)';
+                    ctx.fillRect(bullet.x - bullet.direction * 5, bullet.y, 5, bullet.height);
+                    
+                    // Draw label
+                    ctx.fillStyle = 'white';
+                    ctx.font = '8px Arial';
+                    ctx.fillText(`bullets[${index}]`, bullet.x, bullet.y - 8);
+                }
+            });
+            
+            // Draw player
+            if (gameState.invincible) {
+                // Flash effect when invincible
+                const flashRate = Math.floor(Date.now() / 100) % 2;
+                ctx.fillStyle = flashRate ? '#FFD700' : player.color;
+                
+                // Add glow effect
+                ctx.shadowColor = '#FFD700';
+                ctx.shadowBlur = 15;
+                ctx.fillRect(player.x, player.y, player.width, player.height);
+                ctx.shadowBlur = 0;
+            } else {
+                ctx.fillStyle = player.color;
+                ctx.fillRect(player.x, player.y, player.width, player.height);
+            }
+            
+            // Draw player label
+            ctx.fillStyle = 'white';
+            ctx.font = '10px Arial';
+            ctx.fillText('player', player.x, player.y - 5);
+            
+            // Add player face
+            ctx.fillStyle = 'white';
+            ctx.fillRect(player.x + 8, player.y + 8, 4, 4);
+            ctx.fillRect(player.x + 18, player.y + 8, 4, 4);
+            
+            ctx.fillStyle = 'black';
+            ctx.fillRect(player.x + 9, player.y + 9, 2, 2);
+            ctx.fillRect(player.x + 19, player.y + 9, 2, 2);
+            
+            ctx.fillStyle = 'red';
+            ctx.fillRect(player.x + 12, player.y + 18, 6, 2);
+            
+            // Draw gun
+            ctx.fillStyle = '#444';
+            if (player.facingRight) {
+                ctx.fillRect(player.x + player.width - 2, player.y + 10, 8, 3);
+            } else {
+                ctx.fillRect(player.x - 6, player.y + 10, 8, 3);
+            }
+            
+            // Draw air jump indicator if enabled
+            if (gameState.airJumpEnabled && !player.onGround) {
+                ctx.fillStyle = 'rgba(255, 215, 0, 0.3)';
+                ctx.beginPath();
+                ctx.arc(player.x + player.width/2, player.y + player.height/2, 25, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Show remaining air jumps
+                ctx.fillStyle = '#FFD700';
+                ctx.font = '12px Arial';
+                ctx.fillText(`Air: ${player.maxAirJumps - player.airJumps}`, player.x - 10, player.y - 10);
+            }
+            
+            // Draw goal flag
+            if (goal.y > camera.y - 100 && goal.y < camera.y + canvas.height + 100) {
+                ctx.fillStyle = '#228B22';
+                ctx.fillRect(goal.x, goal.y, 5, goal.height);
+                
+                ctx.fillStyle = '#FF0000';
+                ctx.fillRect(goal.x + 5, goal.y, 25, 20);
+                
+                ctx.fillStyle = 'white';
+                ctx.font = '12px Arial';
+                ctx.fillText('GOAL', goal.x + 8, goal.y + 14);
+                
+                // Draw label
+                ctx.fillStyle = 'white';
+                ctx.font = '10px Arial';
+                ctx.fillText('goal', goal.x, goal.y - 10);
+            }
+            
+            // Restore context
+            ctx.restore();
+            
+            // Draw UI elements (not affected by camera)
+            if (gameState.gameOver) {
+                ctx.fillStyle = 'rgba(0,0,0,0.8)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.fillStyle = 'white';
+                ctx.font = '48px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('GAME OVER', canvas.width/2, canvas.height/2);
+                
+                ctx.font = '24px Arial';
+                ctx.fillText('Final Score: ' + gameState.score, canvas.width/2, canvas.height/2 + 50);
+                ctx.fillText('Press R to restart', canvas.width/2, canvas.height/2 + 80);
+                ctx.textAlign = 'left';
+            }
+            
+            if (gameState.levelComplete) {
+                ctx.fillStyle = 'rgba(0,255,0,0.8)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.fillStyle = 'white';
+                ctx.font = '48px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('LEVEL COMPLETE!', canvas.width/2, canvas.height/2);
+                
+                ctx.font = '24px Arial';
+                ctx.fillText('Score: ' + gameState.score, canvas.width/2, canvas.height/2 + 50);
+                ctx.fillText('Press R to restart', canvas.width/2, canvas.height/2 + 80);
+                ctx.textAlign = 'left';
+            }
+        }
+        
+        function updateUI() {
+            document.getElementById('score').textContent = gameState.score;
+            document.getElementById('lives').textContent = gameState.lives;
+            document.getElementById('ammo').textContent = gameState.ammo;
+        }
+        
+        function restartGame() {
+            gameState = { 
+                score: 0, 
+                lives: 3, 
+                gameOver: false, 
+                levelComplete: false,
+                airJumpEnabled: gameState.airJumpEnabled, // Keep air jump if already activated
+                ammo: 50
+            };
+            player.x = 50;
+            player.y = 450;
+            player.velocityX = 0;
+            player.velocityY = 0;
+            player.onGround = false;
+            player.onMovingPlatform = null;
+            player.airJumps = 0;
+            player.color = '#FF6B6B';
+            player.facingRight = true;
+            
+            // Reset camera
+            camera.y = 0;
+            camera.targetY = 0;
+            
+            // Reset coins
+            coins.forEach(coin => coin.collected = false);
+            
+            // Reset ammo pickups
+            ammoPickups.forEach(ammo => ammo.collected = false);
+            
+            // Reset enemies
+            enemies.forEach(enemy => {
+                enemy.health = enemy.maxHealth;
+                enemy.x = enemy.startX;
+                enemy.direction = 1;
+            });
+            
+            // Clear bullets
+            bullets.length = 0;
+            
+            // Reset moving platforms
+            movingPlatforms.forEach(platform => {
+                platform.x = platform.startX;
+                platform.lastX = platform.startX;
+                platform.direction = 1;
+            });
+        }
+        
+        function gameLoop() {
+            if (!gameState.gameOver && !gameState.levelComplete) {
+                updateMovingPlatforms();
+                updatePlayer();
+                updateCamera();
+                updateBullets();
+                updateEnemies();
+                updateCoins();
+                updateAmmoPickups();
+                checkGoal();
+            }
+            
+            // Handle restart
+            if ((gameState.gameOver || gameState.levelComplete) && keys['r']) {
+                restartGame();
+            }
+            
+            draw();
+            updateUI();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Start the game
+        gameLoop();
+    </script>
+</body>
+</html>

@@ -1,0 +1,142 @@
+{
+  "name": "default",
+  "width": 800,
+  "height": 600,
+  "walls": [
+    {
+      "id": 1,
+      "type": "wall",
+      "x": 100,
+      "y": 100,
+      "width": 40,
+      "height": 40,
+      "properties": {
+        "solid": true,
+        "destructible": false
+      }
+    },
+    {
+      "id": 2,
+      "type": "wall",
+      "x": 700,
+      "y": 100,
+      "width": 40,
+      "height": 40,
+      "properties": {
+        "solid": true,
+        "destructible": false
+      }
+    },
+    {
+      "id": 3,
+      "type": "cover",
+      "x": 400,
+      "y": 300,
+      "width": 60,
+      "height": 20,
+      "properties": {
+        "solid": true,
+        "destructible": true,
+        "health": 100
+      }
+    },
+    {
+      "id": 4,
+      "type": "wall",
+      "x": 100,
+      "y": 500,
+      "width": 40,
+      "height": 40,
+      "properties": {
+        "solid": true,
+        "destructible": false
+      }
+    },
+    {
+      "id": 5,
+      "type": "wall",
+      "x": 700,
+      "y": 500,
+      "width": 40,
+      "height": 40,
+      "properties": {
+        "solid": true,
+        "destructible": false
+      }
+    }
+  ],
+  "spawns": [
+    {
+      "id": 6,
+      "type": "spawn",
+      "x": 50,
+      "y": 50,
+      "width": 30,
+      "height": 30,
+      "properties": {
+        "team": "neutral"
+      }
+    },
+    {
+      "id": 7,
+      "type": "spawn",
+      "x": 750,
+      "y": 50,
+      "width": 30,
+      "height": 30,
+      "properties": {
+        "team": "neutral"
+      }
+    },
+    {
+      "id": 8,
+      "type": "spawn",
+      "x": 50,
+      "y": 550,
+      "width": 30,
+      "height": 30,
+      "properties": {
+        "team": "neutral"
+      }
+    },
+    {
+      "id": 9,
+      "type": "spawn",
+      "x": 750,
+      "y": 550,
+      "width": 30,
+      "height": 30,
+      "properties": {
+        "team": "neutral"
+      }
+    }
+  ],
+  "powerups": [
+    {
+      "id": 10,
+      "type": "health",
+      "x": 200,
+      "y": 300,
+      "width": 20,
+      "height": 20,
+      "properties": {
+        "healAmount": 50,
+        "respawnTime": 30
+      }
+    },
+    {
+      "id": 11,
+      "type": "health",
+      "x": 600,
+      "y": 300,
+      "width": 20,
+      "height": 20,
+      "properties": {
+        "healAmount": 50,
+        "respawnTime": 30
+      }
+    }
+  ],
+  "hazards": []
+}
+

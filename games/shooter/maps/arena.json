@@ -1,0 +1,202 @@
+{
+  "name": "arena",
+  "width": 1000,
+  "height": 800,
+  "walls": [
+    {
+      "id": 1,
+      "type": "wall",
+      "x": 200,
+      "y": 200,
+      "width": 40,
+      "height": 200,
+      "properties": {
+        "solid": true,
+        "destructible": false
+      }
+    },
+    {
+      "id": 2,
+      "type": "wall",
+      "x": 800,
+      "y": 200,
+      "width": 40,
+      "height": 200,
+      "properties": {
+        "solid": true,
+        "destructible": false
+      }
+    },
+    {
+      "id": 3,
+      "type": "cover",
+      "x": 500,
+      "y": 400,
+      "width": 100,
+      "height": 40,
+      "properties": {
+        "solid": true,
+        "destructible": true,
+        "health": 100
+      }
+    },
+    {
+      "id": 4,
+      "type": "pillar",
+      "x": 300,
+      "y": 600,
+      "width": 20,
+      "height": 20,
+      "properties": {
+        "solid": true,
+        "destructible": false
+      }
+    },
+    {
+      "id": 5,
+      "type": "pillar",
+      "x": 700,
+      "y": 600,
+      "width": 20,
+      "height": 20,
+      "properties": {
+        "solid": true,
+        "destructible": false
+      }
+    }
+  ],
+  "spawns": [
+    {
+      "id": 6,
+      "type": "spawn",
+      "x": 100,
+      "y": 100,
+      "width": 30,
+      "height": 30,
+      "properties": {
+        "team": "neutral"
+      }
+    },
+    {
+      "id": 7,
+      "type": "spawn",
+      "x": 900,
+      "y": 100,
+      "width": 30,
+      "height": 30,
+      "properties": {
+        "team": "neutral"
+      }
+    },
+    {
+      "id": 8,
+      "type": "spawn",
+      "x": 100,
+      "y": 700,
+      "width": 30,
+      "height": 30,
+      "properties": {
+        "team": "neutral"
+      }
+    },
+    {
+      "id": 9,
+      "type": "spawn",
+      "x": 900,
+      "y": 700,
+      "width": 30,
+      "height": 30,
+      "properties": {
+        "team": "neutral"
+      }
+    },
+    {
+      "id": 10,
+      "type": "spawn",
+      "x": 500,
+      "y": 100,
+      "width": 30,
+      "height": 30,
+      "properties": {
+        "team": "neutral"
+      }
+    },
+    {
+      "id": 11,
+      "type": "spawn",
+      "x": 500,
+      "y": 700,
+      "width": 30,
+      "height": 30,
+      "properties": {
+        "team": "neutral"
+      }
+    }
+  ],
+  "powerups": [
+    {
+      "id": 12,
+      "type": "health",
+      "x": 250,
+      "y": 400,
+      "width": 20,
+      "height": 20,
+      "properties": {
+        "healAmount": 50,
+        "respawnTime": 30
+      }
+    },
+    {
+      "id": 13,
+      "type": "health",
+      "x": 750,
+      "y": 400,
+      "width": 20,
+      "height": 20,
+      "properties": {
+        "healAmount": 50,
+        "respawnTime": 30
+      }
+    },
+    {
+      "id": 14,
+      "type": "speed",
+      "x": 500,
+      "y": 200,
+      "width": 20,
+      "height": 20,
+      "properties": {
+        "speedMultiplier": 1.5,
+        "duration": 10,
+        "respawnTime": 60
+      }
+    }
+  ],
+  "hazards": [
+    {
+      "id": 15,
+      "type": "spikes",
+      "x": 150,
+      "y": 400,
+      "width": 30,
+      "height": 30,
+      "properties": {
+        "damage": 30,
+        "damageInterval": 1
+      }
+    },
+    {
+      "id": 16,
+      "type": "spikes",
+      "x": 850,
+      "y": 400,
+      "width": 30,
+      "height": 30,
+      "properties": {
+        "damage": 30,
+        "damageInterval": 1
+      }
+    }
+  ]
+}
+

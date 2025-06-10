@@ -1,0 +1,108 @@
+{
+  "name": "map1",
+  "width": 800,
+  "height": 600,
+  "walls": [
+    {
+      "id": 1,
+      "type": "wall",
+      "x": 380,
+      "y": 460,
+      "width": 400,
+      "height": 20,
+      "properties": {
+        "solid": true,
+        "destructible": false
+      }
+    },
+    {
+      "id": 3,
+      "type": "cover",
+      "x": 280,
+      "y": 400,
+      "width": 40,
+      "height": 20,
+      "properties": {
+        "solid": true,
+        "destructible": true,
+        "health": 100
+      }
+    },
+    {
+      "id": 4,
+      "type": "pillar",
+      "x": 380,
+      "y": 340,
+      "width": 20,
+      "height": 20,
+      "properties": {
+        "solid": true,
+        "destructible": false
+      }
+    },
+    {
+      "id": 5,
+      "type": "pillar",
+      "x": 440,
+      "y": 340,
+      "width": 20,
+      "height": 20,
+      "properties": {
+        "solid": true,
+        "destructible": false
+      }
+    },
+    {
+      "id": 6,
+      "type": "pillar",
+      "x": 260,
+      "y": 340,
+      "width": 20,
+      "height": 20,
+      "properties": {
+        "solid": true,
+        "destructible": false
+      }
+    },
+    {
+      "id": 7,
+      "type": "wall",
+      "x": 120,
+      "y": 280,
+      "width": 20,
+      "height": 400,
+      "properties": {
+        "solid": true,
+        "destructible": false
+      }
+    }
+  ],
+  "spawns": [
+    {
+      "id": 2,
+      "type": "spawn",
+      "x": 380,
+      "y": 260,
+      "width": 30,
+      "height": 30,
+      "properties": {
+        "team": "neutral"
+      }
+    }
+  ],
+  "powerups": [],
+  "hazards": [
+    {
+      "id": 8,
+      "type": "spikes",
+      "x": 160,
+      "y": 460,
+      "width": 30,
+      "height": 30,
+      "properties": {
+        "damage": 30,
+        "damageInterval": 1
+      }
+    }
+  ]
+}

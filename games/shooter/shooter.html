@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiplayer 2D Shooter</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #222;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        /* Lobby styles */
+        #lobby {
+            max-width: 500px;
+            margin: 50px auto;
+            background: #333;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        #lobby input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 2px solid #555;
+            border-radius: 5px;
+            background: #222;
+            color: white;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        
+        #lobby button {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 5px;
+            background: #4CAF50;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+            box-sizing: border-box;
+        }
+        
+        #lobby button:hover {
+            background: #45a049;
+        }
+        
+        #lobby button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        
+        #roomList {
+            text-align: left;
+            margin: 20px 0;
+        }
+        
+        .room-item {
+            background: #222;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            border: 1px solid #555;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .room-item button {
+            width: auto;
+            padding: 5px 15px;
+            margin: 0;
+            font-size: 14px;
+        }
+        
+        /* Game screen styles */
+        #gameContainer {
+            border: 2px solid #555;
+            position: relative;
+            background: #111;
+        }
+        
+        #gameCanvas {
+            display: block;
+            cursor: crosshair;
+        }
+        
+        #ui {
+            margin-top: 10px;
+            text-align: center;
+        }
+        
+        #playerInfo {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+        
+        .info-box {
+            background: #333;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #555;
+        }
+        
+        /* Health bar styles */
+        #healthBarContainer {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            border: 2px solid #555;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+        
+        #healthBarContainer.damaged {
+            animation: healthDamage 0.5s ease-out;
+        }
+        
+        @keyframes healthDamage {
+            0% { background: rgba(255, 0, 0, 0.8); transform: scale(1.05); }
+            100% { background: rgba(0, 0, 0, 0.8); transform: scale(1); }
+        }
+        
+        #healthBar {
+            width: 200px;
+            height: 25px;
+            background: #333;
+            border: 2px solid #555;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.5);
+        }
+        
+        #healthBar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 50%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0.1), rgba(255,255,255,0));
+            border-radius: 10px 10px 0 0;
+        }
+        
+        #healthFill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            border-radius: 10px;
+            transition: width 0.3s ease, background 0.3s ease;
+            position: relative;
+            box-shadow: inset 0 1px 3px rgba(255,255,255,0.3);
+        }
+        
+        #healthFill.low {
+            background: linear-gradient(90deg, #FF9800, #FFC107);
+            animation: healthPulse 1s infinite alternate;
+        }
+        
+        #healthFill.critical {
+            background: linear-gradient(90deg, #F44336, #FF5722);
+            animation: healthPulse 0.5s infinite alternate;
+        }
+        
+        @keyframes healthPulse {
+            0% { opacity: 0.8; }
+            100% { opacity: 1; }
+        }
+        
+        #healthText {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+            z-index: 10;
+        }
+        
+        .damage-number {
+            position: absolute;
+            color: #FF4444;
+            font-weight: bold;
+            font-size: 18px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            pointer-events: none;
+            z-index: 1000;
+            animation: damageFloat 1.5s ease-out forwards;
+        }
+        
+        @keyframes damageFloat {
+            0% {
+                opacity: 1;
+                transform: translateY(0px) scale(1.2);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-50px) scale(0.8);
+            }
+        }
+        
+        .heal-number {
+            position: absolute;
+            color: #4CAF50;
+            font-weight: bold;
+            font-size: 16px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            pointer-events: none;
+            z-index: 1000;
+            animation: healFloat 1.2s ease-out forwards;
+        }
+        
+        @keyframes healFloat {
+            0% {
+                opacity: 1;
+                transform: translateY(0px) scale(1.1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-30px) scale(0.9);
+            }
+        }
+        
+        #instructions {
+            max-width: 600px;
+            text-align: left;
+            background: #333;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #4CAF50;
+        }
+        
+        h3 {
+            color: #4CAF50;
+            margin-top: 0;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        #connectionStatus {
+            margin-top: 20px;
+            padding: 10px;
+            background: #444;
+            border-radius: 5px;
+        }
+        
+        .status-connected {
+            color: #4CAF50;
+        }
+        
+        .status-disconnected {
+            color: #F44336;
+        }
+        
+        .status-connecting {
+            color: #FF9800;
+        }
+    </style>
+</head>
+<body>
+    <!-- Lobby Screen -->
+    <div id="lobby">
+        <h1>🎯 Multiplayer 2D Shooter</h1>
+        <div id="lobbyContent">
+            <h3>Enter Your Name</h3>
+            <input type="text" id="playerName" placeholder="Your name" maxlength="20" value="Player">
+            
+                <h3>Create or Join a Room</h3>
+                <input type="text" id="roomName" placeholder="Room name" maxlength="30">
+                <div class="control-group">
+                    <label>Map:</label>
+                    <select id="mapSelect">
+                        <option value="default">Default Map</option>
+                    </select>
+                </div>
+                <button id="createRoomBtn">Create Room</button>
+            
+            <div id="roomList">
+                <h4>Available Rooms:</h4>
+                <div id="rooms">No rooms available</div>
+            </div>
+            
+            <div id="connectionStatus" class="status-connecting">Connecting to server...</div>
+        </div>
+    </div>
+    
+    <!-- Game Screen -->
+    <div id="gameScreen" class="hidden">
+        <h1>🎯 Multiplayer 2D Shooter</h1>
+        
+        <!-- Health Bar -->
+        <div id="healthBarContainer">
+            <div style="margin-bottom: 5px; font-size: 12px;">Health</div>
+            <div id="healthBar">
+                <div id="healthFill" style="width: 100%;"></div>
+                <div id="healthText">100/100</div>
+            </div>
+        </div>
+        
+        <div id="playerInfo">
+            <div class="info-box">
+                <strong>Room:</strong> <span id="currentRoom">-</span>
+            </div>
+            <div class="info-box">
+                <strong>Score:</strong> <span id="score">0</span>
+            </div>
+            <div class="info-box">
+                <strong>Players:</strong> <span id="playerCount">1</span>
+            </div>
+        </div>
+        
+        <div id="gameContainer">
+            <canvas id="gameCanvas" width="800" height="600"></canvas>
+        </div>
+        
+        <div id="ui">
+            <div id="status">Connected</div>
+            <button id="leaveRoomBtn" onclick="leaveRoom()">Leave Room</button>
+        </div>
+        
+        <div id="instructions">
+            <h3>How to Play:</h3>
+            <ul>
+                <li><strong>Movement:</strong> Use WASD or Arrow Keys</li>
+                <li><strong>Aim:</strong> Move your mouse to aim</li>
+                <li><strong>Shoot:</strong> Click to fire bullets</li>
+                <li><strong>Goal:</strong> Shoot other players to score points</li>
+                <li><strong>Health:</strong> You have 100 HP, each hit deals 20 damage</li>
+                <li><strong>Respawn:</strong> When you die, you'll respawn at a random location</li>
+            </ul>
+            <p><strong>Tip:</strong> Share the room name with friends to play together!</p>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // Global functions for lobby
+        function leaveRoom() {
+            if (window.game && window.game.socket) {
+                window.game.socket.emit('leaveRoom');
+                showLobby();
+            }
+        }
+        
+        function showLobby() {
+            document.getElementById('lobby').classList.remove('hidden');
+            document.getElementById('gameScreen').classList.add('hidden');
+        }
+        
+        function showGame() {
+            document.getElementById('lobby').classList.add('hidden');
+            document.getElementById('gameScreen').classList.remove('hidden');
+        }
+    </script>
+    <script src="game.js"></script>
+</body>
+</html>
+

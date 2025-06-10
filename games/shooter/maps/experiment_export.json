@@ -1,0 +1,179 @@
+{
+  "name": "experiment",
+  "width": 800,
+  "height": 600,
+  "walls": [
+    {
+      "id": 1,
+      "type": "wall",
+      "x": 240,
+      "y": 400,
+      "width": 40,
+      "height": 40,
+      "properties": {
+        "solid": true,
+        "destructible": false
+      }
+    },
+    {
+      "id": 2,
+      "type": "cover",
+      "x": 300,
+      "y": 400,
+      "width": 40,
+      "height": 20,
+      "properties": {
+        "solid": true,
+        "destructible": true,
+        "health": 100
+      }
+    },
+    {
+      "id": 3,
+      "type": "barrier",
+      "x": 380,
+      "y": 400,
+      "width": 60,
+      "height": 20,
+      "properties": {
+        "solid": true,
+        "destructible": false
+      }
+    },
+    {
+      "id": 4,
+      "type": "pillar",
+      "x": 500,
+      "y": 400,
+      "width": 20,
+      "height": 20,
+      "properties": {
+        "solid": true,
+        "destructible": false
+      }
+    }
+  ],
+  "spawns": [
+    {
+      "id": 5,
+      "type": "spawn",
+      "x": 140,
+      "y": 300,
+      "width": 30,
+      "height": 30,
+      "properties": {
+        "team": "neutral"
+      }
+    },
+    {
+      "id": 6,
+      "type": "team_spawn_a",
+      "x": 260,
+      "y": 540,
+      "width": 30,
+      "height": 30,
+      "properties": {
+        "team": "a"
+      }
+    },
+    {
+      "id": 7,
+      "type": "team_spawn_b",
+      "x": 480,
+      "y": 540,
+      "width": 30,
+      "height": 30,
+      "properties": {
+        "team": "b"
+      }
+    }
+  ],
+  "powerups": [
+    {
+      "id": 8,
+      "type": "health",
+      "x": 120,
+      "y": 460,
+      "width": 20,
+      "height": 20,
+      "properties": {
+        "healAmount": 50,
+        "respawnTime": 30
+      }
+    },
+    {
+      "id": 9,
+      "type": "ammo",
+      "x": 480,
+      "y": 480,
+      "width": 20,
+      "height": 20,
+      "properties": {
+        "ammoAmount": 30,
+        "respawnTime": 20
+      }
+    },
+    {
+      "id": 10,
+      "type": "speed",
+      "x": 340,
+      "y": 480,
+      "width": 20,
+      "height": 20,
+      "properties": {
+        "speedMultiplier": 1.5,
+        "duration": 10,
+        "respawnTime": 60
+      }
+    },
+    {
+      "id": 11,
+      "type": "shield",
+      "x": 240,
+      "y": 440,
+      "width": 20,
+      "height": 20,
+      "properties": {
+        "shieldAmount": 50,
+        "respawnTime": 45
+      }
+    }
+  ],
+  "hazards": [
+    {
+      "id": 12,
+      "type": "spikes",
+      "x": 260,
+      "y": 220,
+      "width": 30,
+      "height": 30,
+      "properties": {
+        "damage": 30,
+        "damageInterval": 1
+      }
+    },
+    {
+      "id": 13,
+      "type": "lava",
+      "x": 480,
+      "y": 280,
+      "width": 40,
+      "height": 40,
+      "properties": {
+        "damage": 20,
+        "damageInterval": 0.5
+      }
+    },
+    {
+      "id": 14,
+      "type": "water",
+      "x": 340,
+      "y": 320,
+      "width": 60,
+      "height": 60,
+      "properties": {
+        "speedMultiplier": 0.5
+      }
+    }
+  ]
+}
