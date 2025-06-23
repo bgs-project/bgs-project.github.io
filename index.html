@@ -1,14 +1,177 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Vocabulary Trainer</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 1.5rem 1rem;
+      margin: 0;
+      background: #fff;
+      color: #222;
+    }
+
+    h1 {
+      font-size: clamp(1.5rem, 4vw, 2.5rem);
+      margin-bottom: 1rem;
+    }
+
+    #word {
+      font-size: clamp(1.8rem, 6vw, 3rem);
+      margin: 1.5rem 0 1rem;
+      word-wrap: break-word;
+      padding: 0 1rem;
+    }
+
+    #translation {
+      font-size: clamp(1.2rem, 4vw, 1.8rem);
+      color: green;
+      margin: 1rem 0 1.5rem;
+      display: none;
+      min-height: 2em;
+      padding: 0 1rem;
+    }
+
+    /* Responsive button container */
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+
+    button {
+      flex: 1 1 140px;
+      min-width: 140px;
+      padding: 1rem 0.75rem;
+      font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+      border: none;
+      border-radius: 8px;
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover,
+    button:focus {
+      background-color: #0056b3;
+      outline: none;
+    }
+
+    @media (max-width: 400px) {
+      button {
+        min-width: 100px;
+        font-size: 1rem;
+        padding: 1rem;
+      }
+    }
+  </style>
 </head>
 <body>
-    <h1>my small experimental games :)</h1>
-    <h3>they have decent graphics :D</h3>
-    <a href="games/parkour.html">parkour</a>
-    <a href="games/shooter/shooter.html">multiplayer shooter</a>
-    
+  <h1>Vocabulary Trainer</h1>
+  <div id="word">Loading...</div>
+  <div id="translation">Translation here</div>
+
+  <div class="button-group">
+    <button onclick="speak()">🔊 Speak</button>
+    <button onclick="showTranslation()">➡ Show Translation</button>
+  </div>
+
+  <div class="button-group">
+    <button onclick="gotIt()">✅ Got It</button>
+    <button onclick="nextWord()">🔁 Next</button>
+  </div>
+
+  <div class="button-group">
+    <button onclick="resetProgress()">🗑 Reset Progress</button>
+  </div>
+
+  <script>
+    const wordListUrl = 'https://tradenom.github.io/idk.txt'; // Replace with your own URL
+    const proxyUrl = 'https://bot-proxy.takeiteasy-decent.workers.dev/'; // <-- Put your Cloudflare Worker or proxy URL here
+
+    let words = [];
+    let currentWord = '';
+    let learnedWords = new Set(JSON.parse(localStorage.getItem('learnedWords') || '[]'));
+
+    async function fetchWords() {
+      try {
+        const response = await fetch(wordListUrl);
+        const text = await response.text();
+        words = text.trim().split(/\s+/).filter(Boolean);
+        nextWord();
+      } catch (error) {
+        document.getElementById('word').textContent = 'Failed to load word list.';
+        console.error(error);
+      }
+    }
+
+    function nextWord() {
+      const remainingWords = words.filter(w => !learnedWords.has(w));
+      if (remainingWords.length === 0) {
+        document.getElementById('word').textContent = 'All words learned 🎉';
+        document.getElementById('translation').style.display = 'none';
+        return;
+      }
+      currentWord = remainingWords[Math.floor(Math.random() * remainingWords.length)];
+      document.getElementById('word').textContent = currentWord;
+      document.getElementById('translation').style.display = 'none';
+      document.getElementById('translation').textContent = '';
+    }
+
+    function speak() {
+      const utterance = new SpeechSynthesisUtterance(currentWord);
+      utterance.lang = 'en-US';
+      speechSynthesis.speak(utterance);
+    }
+
+    async function showTranslation() {
+      const el = document.getElementById('translation');
+      el.style.display = 'block';
+      el.textContent = 'Translating...';
+
+      try {
+        const response = await fetch(proxyUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            text: currentWord,
+            target_lang: 'PL'
+          })
+        });
+
+        if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+        const data = await response.json();
+        el.textContent = data.translations?.[0]?.text || 'No translation';
+      } catch (err) {
+        el.textContent = 'Error translating word.';
+        console.error(err);
+      }
+    }
+
+    function gotIt() {
+      learnedWords.add(currentWord);
+      localStorage.setItem('learnedWords', JSON.stringify([...learnedWords]));
+      nextWord();
+    }
+
+    function resetProgress() {
+      if (confirm("Are you sure you want to reset your progress?")) {
+        learnedWords.clear();
+        localStorage.removeItem('learnedWords');
+        nextWord();
+      }
+    }
+
+    fetchWords();
+  </script>
 </body>
 </html>
