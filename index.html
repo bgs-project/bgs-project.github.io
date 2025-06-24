@@ -35,7 +35,6 @@
       padding: 0 1rem;
     }
 
-    /* Responsive button container */
     .button-group {
       display: flex;
       flex-wrap: wrap;
@@ -71,6 +70,35 @@
         padding: 1rem;
       }
     }
+
+    #learnedWordsModal {
+      display: none;
+      padding: 1rem;
+      background: #f0f0f0;
+      margin: 1rem auto;
+      max-width: 600px;
+      border-radius: 8px;
+      text-align: left;
+    }
+
+    #learnedWordsModal h2 {
+      margin-top: 0;
+    }
+
+    #learnedWordsList {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    #learnedWordsList li {
+      padding: 0.25rem 0;
+      border-bottom: 1px solid #ddd;
+    }
+
+    #learnedWordsModal button {
+      background: #dc3545;
+      margin-top: 1rem;
+    }
   </style>
 </head>
 <body>
@@ -90,11 +118,19 @@
 
   <div class="button-group">
     <button onclick="resetProgress()">🗑 Reset Progress</button>
+    <button onclick="showLearnedWords()">📘 Learned Words</button>
+  </div>
+
+  <!-- Modal-like section for showing learned words -->
+  <div id="learnedWordsModal">
+    <h2>Learned Words</h2>
+    <ul id="learnedWordsList"></ul>
+    <button onclick="closeLearnedWords()">Close</button>
   </div>
 
   <script>
     const wordListUrl = 'https://tradenom.github.io/idk.txt'; // Replace with your own URL
-    const proxyUrl = 'https://bot-proxy.takeiteasy-decent.workers.dev/'; // <-- Put your Cloudflare Worker or proxy URL here
+    const proxyUrl = 'https://bot-proxy.takeiteasy-decent.workers.dev/';
 
     let words = [];
     let currentWord = '';
@@ -169,6 +205,28 @@
         localStorage.removeItem('learnedWords');
         nextWord();
       }
+    }
+
+    function showLearnedWords() {
+      const modal = document.getElementById('learnedWordsModal');
+      const list = document.getElementById('learnedWordsList');
+      list.innerHTML = '';
+
+      if (learnedWords.size === 0) {
+        list.innerHTML = '<li>No words learned yet.</li>';
+      } else {
+        [...learnedWords].sort().forEach(word => {
+          const li = document.createElement('li');
+          li.textContent = word;
+          list.appendChild(li);
+        });
+      }
+
+      modal.style.display = 'block';
+    }
+
+    function closeLearnedWords() {
+      document.getElementById('learnedWordsModal').style.display = 'none';
     }
 
     fetchWords();
